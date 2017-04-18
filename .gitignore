@@ -1,0 +1,4 @@
+# If you want using this project as a base of your ionic2 project uncomment the following line
+#docker/
+# .env file may contain private project sensitive information
+.env
