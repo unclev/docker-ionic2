@@ -1,60 +1,60 @@
 # Ionic 2 developer container
 # Use at your own risk! I have not tested any deployment, created my own as all the others did not work!
-# alias ionic="docker run -ti --rm -p 8100:8100 -p 35729:35729 -v \$PWD:/myApp:rw bekkere/docker-ionic2:latest ionic"
+# alias ionic="docker-compose run --rm --service-ports dev ionic"
 # then use ionic serve on localhost:8100
 
 FROM ubuntu:16.04
 
-MAINTAINER bekkere <bekkere@gmail.com>
+MAINTAINER Victor Kulichenko <onclev@gmail.com>
+
+ARG PUID
+ARG PGID
+ENV IUSER="ionicdev" PUID=${PUID:-1000} PGID=${PGID:-1000} \
+    IONIC_BRANCH=${IONIC_BRANCH:-2}
 
 # Set one or more individual labels
-LABEL Description="Ionic 2 Framework Dev container"
-LABEL Volumes="/myApp"
-LABEL Ports="8100, 35729"
-LABEL Ionic_Framework_Version="2.0.0"
-LABEL Cordova_CLI_Version="6.5.0"
-LABEL Ionic_CLI_Version="2.2.1"
-LABEL Ionic_App_Lib_Version="2.2.0"
-LABEL Ionic_App_Script_Version="1.0.0"
-LABEL Node_Version="7.x"
-LABEL TypeScript_Version="2.2.1"
-LABEL release-date="2017-03-23"
-LABEL is-production="False"
-LABEL HOST_ALIAS="alias ionic=docker run -ti --rm -p 8100:8100 -p 35729:35729 -v $PWD:/myApp:rw bekkere/docker-ionic2:latest ionic"
+LABEL Description="Ionic 2 Framework Dev container" \
+      Volumes="/home/$IUSER" \
+      Ports="8100, 35729" \
+      Ionic_Framework_Version="2.0.0" \
+      Cordova_CLI_Version="6.5.0" \
+      Ionic_CLI_Version="2.2.1" \
+      Ionic_App_Lib_Version="2.2.0" \
+      Ionic_App_Script_Version="1.0.0" \
+      Node_Version="7.x" \
+      TypeScript_Version="2.2.1" \
+      release-date="2017-03-23" \
+      is-production="False" \
+      HOST_ALIAS="docker-compose run --rm --service-ports dev ionic"
 
-RUN apt-get update && apt-get install -y -q curl
+RUN apt-get update && apt-get install -y -q curl \
+ && curl -sL https://deb.nodesource.com/setup_7.x | bash - \
 
-RUN curl -sL https://deb.nodesource.com/setup_7.x | bash -
-
-# install nodejs, npm and git 
-RUN apt-get install -y -q \
+# install nodejs, npm and git
+ && apt-get install -y -q \
             nodejs \
             git \
             && apt-get -y autoclean \
             && rm -rf /var/lib/apt/lists/*
 
 # install ionic, cordova, typescript, gulp
-RUN npm install -g -y ionic
-RUN npm install -g -y cordova
-RUN npm install -g -y typescript
-RUN npm install -g -y gulp
+RUN npm install -g -y ionic cordova typescript gulp
 
-RUN echo ' Create a alias for quick launch ...' > /Readme.txt
-RUN echo ' alias ionic=docker run -ti --rm -p 8100:8100 -p 35729:35729 -v \$PWD:/myApp:rw bekkere/docker-ionic2:latest ionic' >> /Readme.txt
-RUN echo ''
-RUN echo ' Installed the following packages:' >> /Readme.txt
-RUN echo ' --> Ubuntu 16.04, with curl' >> /Readme.txt
-RUN echo ' --> Nodejs version 7.x, git' >> /Readme.txt
-RUN echo ' --> NPM install globally ionic, cordova, typescript, gulp' >> /Readme.txt
-RUN echo ' ' >> /Readme.txt
-RUN echo ' NOTE: Do not run npm update -g npm ... reinstalling npm v3 fails on Docker' >> /Readme.txt
+# ionicdev user and group
+RUN groupadd -g $PGID $IUSER && useradd -m -g $PGID -u $PUID -s /bin/bash $IUSER
 
-RUN echo 'cd /myApp' > /start.sh
-RUN echo 'cat /Readme.txt' >> /start.sh
+# populate ionicdev home directory with a project(s) if it/they exists(s)
+# copy Readme.txt and start.sh one level up
+WORKDIR "/home/$IUSER"
+COPY ./docker/Readme.txt ./docker/start.sh /home/
+COPY . ./
+RUN chown -Rv $IUSER:$IUSER . ../Readme.txt ../start.sh \
+ && chmod -v ug+x ../start.sh \
+ && rm -R ./docker
+ # the docker folder does not relate to the project
 
-WORKDIR /myApp
-
-CMD bash -C '/start.sh';'bash'
+USER $IUSER
+ENTRYPOINT ["/home/start.sh"]
 
 EXPOSE 8100 35729
 
