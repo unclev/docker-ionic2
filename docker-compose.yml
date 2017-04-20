@@ -1,0 +1,25 @@
+version: '2'
+
+networks:
+  default:
+    external:
+      name: bridge
+
+services: 
+  dev:
+    build:
+      # context is a current directory so that
+      # it can add specified project to the image when it builds
+      context: .
+      dockerfile: 'docker/Dockerfile'
+      args:
+        - PUID
+        - PGID
+    image: 'unclev/docker-ionic2:latest'
+    networks:
+      - 'default'
+    ports:
+     - '8100:8100'
+     - '35729:35729'
+    volumes:
+      - '.:/home/ionicdev'

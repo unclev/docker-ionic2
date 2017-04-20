@@ -10,7 +10,8 @@ MAINTAINER Victor Kulichenko <onclev@gmail.com>
 ARG PUID
 ARG PGID
 ENV IUSER="ionicdev" PUID=${PUID:-1000} PGID=${PGID:-1000} \
-    IONIC_BRANCH=${IONIC_BRANCH:-2}
+    IONIC_BRANCH=${IONIC_BRANCH:-2} \
+    PROJECTNAME=${PROJECTNAME}
 
 # Set one or more individual labels
 LABEL Description="Ionic 2 Framework Dev container" \
@@ -30,31 +31,29 @@ LABEL Description="Ionic 2 Framework Dev container" \
 RUN apt-get update && apt-get install -y -q curl \
  && curl -sL https://deb.nodesource.com/setup_7.x | bash - \
 
-# install nodejs, npm and git
+# install nodejs, npm, git, and sudo
  && apt-get install -y -q \
             nodejs \
             git \
-            && apt-get -y autoclean \
-            && rm -rf /var/lib/apt/lists/*
-
-# install ionic, cordova, typescript, gulp
-RUN npm install -g -y ionic cordova typescript gulp
-
-# ionicdev user and group
-RUN groupadd -g $PGID $IUSER && useradd -m -g $PGID -u $PUID -s /bin/bash $IUSER
-
-# populate ionicdev home directory with a project(s) if it/they exists(s)
-# copy Readme.txt and start.sh one level up
-WORKDIR "/home/$IUSER"
-COPY ./docker/Readme.txt ./docker/start.sh /home/
-COPY . ./
-RUN chown -Rv $IUSER:$IUSER . ../Readme.txt ../start.sh \
- && chmod -v ug+x ../start.sh \
- && rm -R ./docker
- # the docker folder does not relate to the project
+            sudo \
+ && apt-get -y autoclean \
+ && rm -rf /var/lib/apt/lists/* \
+# ionicdev sudouser and group
+ && groupadd -g $PGID $IUSER && useradd -m -g $PGID -u $PUID -s /bin/bash $IUSER \
+ && echo "%$IUSER ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 
 USER $IUSER
-ENTRYPOINT ["/home/start.sh"]
+
+# install ionic, cordova, typescript, gulp
+RUN sudo npm install -g -y ionic cordova typescript gulp \
+ && echo n | cordova -v
+
+# populate ionicdev home directory with a project(s) if it/they exists(s)
+WORKDIR "/home/$IUSER"
+COPY ${PROJECTNAME:-.} ./$PROJECTNAME
+# the docker folder does not relate to the project
+RUN sudo rm -R ./docker \
+ && sudo chown -Rv $IUSER:$IUSER .
 
 EXPOSE 8100 35729
 
