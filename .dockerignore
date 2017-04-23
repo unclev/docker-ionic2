@@ -1,0 +1,5 @@
+# To exlude .gitignore .bash_*, .config, .cordova, .ionic, .npm
+.*
+# .env file may contain private project sensitive information
+.env
+docker-compose.yml
